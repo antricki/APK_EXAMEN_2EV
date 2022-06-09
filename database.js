@@ -1,9 +1,16 @@
 const md5 = require('md5');
-
 var sqlite3 = require('sqlite3').verbose()
+const CryptoJS = require('crypto-js');
+
 
 
 const DBSOURCE = "db.sqlite"
+
+const encryptWithAES = (text) => {
+    const passphrase = "My Secret Passphrase";
+    return CryptoJS.AES.encrypt(text, passphrase).toString();
+  };
+  //The Function Below To Decrypt Text
 
 let db = new sqlite3.Database(DBSOURCE, (err) => {
     if (err) {
@@ -48,8 +55,8 @@ let db = new sqlite3.Database(DBSOURCE, (err) => {
                         console.error("Insertant anotació")
                         // Table just created, creating some rows
                         var insert = 'INSERT INTO anotacions (id_user, anotacio) VALUES (?,?)'
-                        var param = [1,md5("Comentari")] // El comentario cifrado con MD5 nunca. Mejorarlo en futuras versiones
-                                                         // con algún codificador. https://stackoverflow.com/questions/18279141/javascript-string-encryption-and-decryption
+                        //var param = [1,md5("comentari")] 
+                        var param = [1,encryptWithAES("hola")]
                     db.run(insert, param)
                     }
                 });

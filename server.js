@@ -16,16 +16,37 @@ const PORT = 8443;
 const clau = 'hola'
 const cookieparser = require("cookie-parser")
 app.use(cookieparser())
+const CryptoJS = require('crypto-js');
 
-// Recordatorio:
-    // - Eliminar node_modules!!
+ 
 
+//let encryptText = encryptWithAES("comentari"); 
+//EncryptedText==>  //U2FsdGVkX19GgWeS66m0xxRUVxfpI60uVkWRedyU15I= 
+
+//let decryptText = decryptWithAES(encryptText);
+////decryptText==>  //YAZAN 
+const decryptWithAES = (ciphertext) => {
+    const passphrase = "My Secret Passphrase";
+    const bytes = CryptoJS.AES.decrypt(ciphertext, passphrase);
+    const originalText = bytes.toString(CryptoJS.enc.Utf8);
+    return originalText;
+  };
+
+  const encryptWithAES = (text) => {
+    const passphrase = "My Secret Passphrase";
+    return CryptoJS.AES.encrypt(text, passphrase).toString();
+  };
+  //The Function Below To Decrypt Text
+
+
+  
 https.createServer({
     key: fs.readFileSync('my_cert.key'),
     cert: fs.readFileSync('my_cert.crt')
   }, app).listen(PORT, function(){
     console.log("Servidor HTTPS Toni escuchando en la URL https://localhost:%PORT%".replace("%PORT%",PORT))
   });
+  
   app.get("/", (req, res, next) => {
     res.json({"message":"Ok"})
  });
@@ -111,7 +132,7 @@ app.post("/api/user/", (req, res, next) => {
         email: req.body.email,
         password : md5(req.body.password)
     }
-    var sql ='INSERT INTO user (id, name, email, password) VALUES (?,?,?,?)' // Consulta a la base de datos
+    var sql ='INSERT INTO user (name, email, password) VALUES (?,?,?)' // Solucionado el error del ID (al ser incrementable no debe de ponerse)
     
     var params =[data.name, data.email, data.password]
     db.run(sql, params, function (err, result) {
@@ -157,7 +178,7 @@ app.patch("/api/user/:id", (req, res, next) => {
 // Crear anotaciones
 app.post('/api/anotar', autenticarusuari, (req, res) => {
     var sql = "INSERT INTO anotacions (id_user, anotacio) VALUES (?,?)"; // Consulta a la base de datos
-    db.run(sql, [req.usuari.id, req.body.anotacio], function (err) {
+    db.run(sql, [req.usuari.id, encryptWithAES(req.body.anotacio)], function (err) {
         if (err){
             res.status(400).json({"error": err.message})
             return
@@ -174,14 +195,16 @@ app.get('/api/vorenota/:usuari', autenticarusuari, (req, res) => {
         return
     }
     var sql = "SELECT anotacio FROM anotacions WHERE id_user = ?";
-    db.all(sql, [req.params.usuari], function (err, result) {
+    db.all(sql, [req.params.usuari,], function (err, result) {
         if (err){
             res.status(400).json({"error": err.message})
             return
         }
-        res.status(200).json({"message": result})
+        const notes =[];
+        result.forEach((row) => {notes.push(decryptWithAES(row['anotacio']))})
+        res.status(200).send(notes)
         return
-    });
+        });
 })
 
 // Eliminación de las anotaciones (En proceso...)
@@ -194,10 +217,10 @@ app.delete("/api/eliminarnota/:nota", autenticarusuari, (req, res, next) => {
                 return;
             }
             if(this.changes > 1){
-                res.json({"message":"La anotación se ha eliminado con éxito"})
+                res.json({"message":"la anotación no se ha podido eliminar"})
             } 
             else {
-                res.json({"message":"la anotación no se ha podido eliminar"})
+                res.json({"message":"La anotación se ha eliminado con éxito"})
             }
         
         }
