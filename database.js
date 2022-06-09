@@ -1,11 +1,7 @@
 const md5 = require('md5');
 var sqlite3 = require('sqlite3').verbose()
 const CryptoJS = require('crypto-js');
-
-
-
 const DBSOURCE = "db.sqlite"
-
 const encryptWithAES = (text) => {
     const passphrase = "My Secret Passphrase";
     return CryptoJS.AES.encrypt(text, passphrase).toString();
